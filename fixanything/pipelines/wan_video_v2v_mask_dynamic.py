@@ -29,6 +29,7 @@ from diffsynth.schedulers.flow_match import FlowMatchScheduler
 from diffsynth.prompters import WanPrompter
 from diffsynth.vram_management import enable_vram_management, AutoWrappedModule, AutoWrappedLinear, WanAutoCastLayerNorm
 from diffsynth.lora import GeneralLoRALoader
+from fixanything.fp8 import ScaledFP8Linear, AutoWrappedScaledFP8Linear
 
 
 class WanVideoPipeline(BasePipeline):
@@ -44,6 +45,8 @@ class WanVideoPipeline(BasePipeline):
         self.image_encoder: WanImageEncoder = None
         self.dit: WanModel = None
         self.vae: WanVideoVAE = None
+        self.cached_prompt_embeddings = None
+        self.cached_prompts = None
         self.in_iteration_models = ("dit",)
         self.unit_runner = PipelineUnitRunner()
         self.units = [
@@ -57,11 +60,18 @@ class WanVideoPipeline(BasePipeline):
         self.model_fn = model_fn_wan_video
 
     def load_lora(self, module: torch.nn.Module, lora_path: str, alpha=1):
+        if any(isinstance(layer, (ScaledFP8Linear, AutoWrappedScaledFP8Linear)) for layer in module.modules()):
+            raise ValueError("FP8 deployment weights are immutable. Merge LoRA in BF16 and export a new package.")
         lora = load_state_dict(lora_path, torch_dtype=self.torch_dtype, device=self.device)
         loader = GeneralLoRALoader(torch_dtype=self.torch_dtype, device=self.device)
         loader.load(module, lora, alpha=alpha)
 
     def enable_vram_management(self, num_persistent_param_in_dit=None, vram_limit=None, vram_buffer=0.5):
+        has_scaled_fp8 = self.dit is not None and any(
+            isinstance(module, ScaledFP8Linear) for module in self.dit.modules()
+        )
+        if has_scaled_fp8 and num_persistent_param_in_dit is None:
+            raise ValueError("Scaled FP8 models require num_persistent_param_in_dit; dynamic VRAM caching is unsupported.")
         self.vram_management_enabled = True
         if num_persistent_param_in_dit is not None:
             vram_limit = None
@@ -90,11 +100,14 @@ class WanVideoPipeline(BasePipeline):
                 vram_limit=vram_limit,
             )
         if self.dit is not None:
-            dtype = next(iter(self.dit.parameters())).dtype
+            # Quantized Linear weights have their own mixed storage dtypes.
+            # All remaining DiT layers retain the pipeline's computation dtype.
+            dtype = self.torch_dtype if has_scaled_fp8 else next(iter(self.dit.parameters())).dtype
             device = "cpu" if vram_limit is not None else self.device
             enable_vram_management(
                 self.dit,
                 module_map = {
+                    ScaledFP8Linear: AutoWrappedScaledFP8Linear,
                     torch.nn.Linear: AutoWrappedLinear,
                     torch.nn.Conv3d: AutoWrappedModule,
                     torch.nn.LayerNorm: WanAutoCastLayerNorm,
@@ -252,10 +265,12 @@ class WanVideoPipeline(BasePipeline):
         # Inputs
         inputs_posi = {
             "prompt": prompt,
+            "positive": True,
             "num_inference_steps": num_inference_steps,
         }
         inputs_nega = {
             "negative_prompt": negative_prompt,
+            "positive": False,
             "num_inference_steps": num_inference_steps,
         }
         inputs_shared = {
@@ -292,6 +307,7 @@ class WanVideoPipeline(BasePipeline):
         # Decode
         self.load_models_to_device(['vae'])
         video = self.vae.decode(inputs_shared["latents"], device=self.device, tiled=tiled, tile_size=tile_size, tile_stride=tile_stride)
+        self.vae.model.clear_cache()
         video = self.vae_output_to_video(video)
         self.load_models_to_device([])
 
@@ -331,6 +347,22 @@ class WanVideoUnit_PromptEmbedder(PipelineUnit):
         )
 
     def process(self, pipe: WanVideoPipeline, prompt, positive) -> dict:
+        if pipe.cached_prompt_embeddings is not None:
+            key = "positive" if positive else "negative"
+            if isinstance(pipe.cached_prompts, dict):
+                expected_prompt = pipe.cached_prompts.get(key)
+            elif isinstance(pipe.cached_prompts, (tuple, list)) and len(pipe.cached_prompts) == 2:
+                expected_prompt = pipe.cached_prompts[0 if positive else 1]
+            else:
+                raise ValueError("Cached prompt metadata must contain the positive and negative prompts.")
+            if not isinstance(expected_prompt, str) or prompt != expected_prompt:
+                raise ValueError(f"This deployment only supports its cached {key} prompt.")
+            prompt_emb = pipe.cached_prompt_embeddings.get(key)
+            if not isinstance(prompt_emb, torch.Tensor):
+                raise ValueError(f"The cached {key} prompt embedding is missing.")
+            return {"context": prompt_emb.to(dtype=pipe.torch_dtype, device=pipe.device)}
+        if pipe.text_encoder is None:
+            raise ValueError("Text encoding requires a text encoder or cached prompt embeddings.")
         pipe.load_models_to_device(self.onload_model_names)
         prompt_emb = pipe.prompter.encode_prompt(prompt, positive=positive, device=pipe.device)
         return {"context": prompt_emb}
@@ -354,6 +386,8 @@ class WanVideoUnit_ReferenceVideoEmbedder(PipelineUnit):
         pipe.load_models_to_device(["vae"])
         ref_video = pipe.preprocess_video(reference_video)
         ref_latents = pipe.vae.encode(ref_video, device=pipe.device, tiled=tiled, tile_size=tile_size, tile_stride=tile_stride).to(dtype=pipe.torch_dtype, device=pipe.device)
+        # Temporal caches are plain tensor lists and do not follow model offloading.
+        pipe.vae.model.clear_cache()
         return {"latents": noise, "ref_latents": ref_latents}
 
 

@@ -1,4 +1,8 @@
 checkpoints/
+.venv/
+deployments/
+build/
+dist/
 outputs/
 __pycache__/
 *.pyc

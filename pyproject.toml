@@ -20,6 +20,7 @@ dependencies = [
     "imageio[ffmpeg]",
     "tqdm",
     "einops",
+    "safetensors>=0.5",
 ]
 
 [project.optional-dependencies]

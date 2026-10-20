@@ -28,6 +28,7 @@ This repository contains the inference code.
 - [Installation](#-installation)
 - [Checkpoints](#-checkpoints)
 - [Run Inference on a Rendered Video](#-run-inference-on-a-rendered-video)
+- [Compact FP8 Deployment](#compact-fp8-deployment)
 - [Run on Your Own Captures](#-run-on-your-own-captures)
 - [License](#-license)
 - [Acknowledgments](#-acknowledgments)
@@ -60,7 +61,7 @@ pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.
 
 ## 📦 Checkpoints
 
-`scripts/download_models.py` downloads everything into `checkpoints/`: the Wan2.1-I2V-14B-480P base model (~60 GB, from Hugging Face or `--source modelscope`) and the FixAnything LoRA from [kvuong2711/fix-anything](https://huggingface.co/kvuong2711/fix-anything):
+`scripts/download_models.py` downloads everything into `checkpoints/`: the Wan2.1-I2V-14B-480P base model (~82 GB, from Hugging Face or `--source modelscope`) and the FixAnything LoRA from [kvuong2711/fix-anything](https://huggingface.co/kvuong2711/fix-anything):
 
 ```bash
 python scripts/download_models.py --model_dir checkpoints
@@ -99,6 +100,51 @@ To run on your own rendering (any 3D representation), pass a video of 61 frames 
 
 - **Caveat on the number of frames.** Internally the last frame is repeated 4 times (65 frames): the Wan VAE encodes the first frame on its own but compresses the rest temporally, so this (hopefully) gives the last frame more influence to the generation. The output is cropped back to 61 frames.
 - **`--clean_frame_indices`** lists the frames to keep as-is; by default the first and last frames (`"0 60"`).
+
+## Compact FP8 deployment
+
+Export a compact package once, then use that directory for later inference. The exporter merges the FixAnything LoRA into the base DiT before quantization and includes the VAE, image encoder, and cached positive/negative prompt embeddings. Inference from this package does not need the original base-model files, LoRA, tokenizer, or UMT5 text encoder.
+
+Use the installed FixAnything environment for both commands. The export step requires the original checkpoints and sufficient CPU memory. Choose a new output directory for each build:
+
+```bash
+python scripts/export_deployment.py --output_dir deployments/fixanything_fp8
+```
+
+Once export finishes, run directly from the package, including offline:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 \
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  python scripts/run_inference.py \
+  --deployment_dir deployments/fixanything_fp8 \
+  --input examples/dl3dv_3dgs/input.mp4 \
+  --output_dir outputs/fp8_deployment --profile
+```
+
+The compact package stores DiT Linear weights in E4M3 FP8 with one FP32 scale per Linear layer. Biases, normalization parameters, and convolution weights remain BF16. Each Linear weight is transferred in FP8, dequantized, and computed in BF16; this reduces weight storage and CPU transfer volume. It does not switch the pipeline's activations or matrix multiplication to FP8.
+
+The default GPU residency budget is 12 billion DiT parameters for the compact package and 6 billion for the original BF16 model. Override it with `--num_persistent_param_in_dit`; `0` streams all wrapped DiT layers from CPU memory. Higher values can reduce transfers but leave less memory for activations. `--profile` writes loading/inference timings and CUDA peak allocated/reserved memory to `run_metrics.json` in the output directory.
+
+The package supports the positive and negative prompts cached during export. `fix_video()` automatically uses those prompts when no explicit prompts are supplied. To change the text conditioning, export a new package with the desired prompts; an explicit mismatched prompt is rejected instead of silently reusing a different embedding. Input videos, clean-frame indices, frame counts, seeds, and denoising steps remain runtime inputs.
+
+The exported package occupies approximately **17.93 GB (16.70 GiB)**, including 12 safetensors shards, the manifest, and license notices. Copy the entire directory to the deployment machine. Add `--verify_deployment_hashes` on first use to check all SHA-256 hashes. Python dependencies are separate from the weight package. Quantization can change generated details; validate it on your own inputs.
+
+Frame dimensions must be divisible by 16, and `num_frames + num_repeat_last` must equal 1 modulo 4 (the default is 61 + 4). Changing the cached prompts or merged LoRA requires exporting a new package.
+
+A local RTX 4090 comparison used the same 3DGS example, 832×480 resolution, 61 input frames (65 internally), 10 steps, CFG 5, seed 1, PyTorch 2.6.0+cu126 and FlashAttention 2.7.4.post1:
+
+| Mode | Inference time | CUDA peak allocated | Sampled device peak | Process peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Original BF16, 6 billion resident parameters | 256.5 s | 14.52 GiB | 15.53 GiB | 55.85 GiB |
+| Compact FP8, 12 billion resident parameters | 211.3 s | 14.54 GiB | 15.55 GiB | 18.84 GiB |
+
+Inference includes conditioning, denoising and VAE decoding; model loading and MP4 encoding are excluded. Device memory was sampled once per second; the compact run retained at least 7.96 GiB free. File caches may be warm, and these timings are one sample, not a cold-start guarantee. The compact run completed offline from an empty working directory with deliberately nonexistent original checkpoint paths. Sampled frames retained the main refinement behavior; quantization changes details and has not been evaluated over a full dataset.
+
+The runtime reuses immutable CPU copies of quantized weights during offloading. Do not modify deployment weights in place; merge LoRA into the BF16 originals and export a new package instead.
+
+CPU-only format and numerical tests: `python -m unittest discover -s tests -v`.
 
 ## 📷 Run on Your Own Captures
 
