@@ -123,7 +123,23 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   --output_dir outputs/fp8_deployment --profile
 ```
 
-The compact package stores DiT Linear weights in E4M3 FP8 with one FP32 scale per Linear layer. Biases, normalization parameters, and convolution weights remain BF16. Each Linear weight is transferred in FP8, dequantized, and computed in BF16; this reduces weight storage and CPU transfer volume. It does not switch the pipeline's activations or matrix multiplication to FP8.
+The compact package stores DiT Linear weights in E4M3 FP8 with one FP32 scale per Linear layer. Biases, normalization parameters, and convolution weights remain BF16. By default, each Linear weight is transferred in FP8, dequantized, and computed in BF16; this reduces weight storage and CPU transfer volume.
+
+To use native FP8 matrix multiplication on the same package, add `--fp8_compute native`. No new export or weight download is needed:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 \
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  python scripts/run_inference.py \
+  --deployment_dir deployments/fixanything_fp8 --fp8_compute native \
+  --input examples/dl3dv_3dgs/input.mp4 \
+  --output_dir outputs/native_fp8_use --profile
+```
+
+The native backend dynamically scales each Linear input tensor into E4M3 FP8 and calls `torch._scaled_mm` with FP8 inputs/weights, FP32 scales, BF16 outputs, and `use_fast_accum=False`. Attention, normalization, CLIP, and VAE retain their existing precision. Activation quantization uses fused Triton kernels to avoid full FP32 activation allocations. The tested environment is RTX 4090 (SM89), PyTorch 2.6.0+cu126, and Triton 3.2.0. A CUDA kernel probe runs before checkpoint loading; unsupported native configurations fail explicitly. Linear layers with unaligned K/N dimensions use a counted BF16 fallback, and kernel errors are propagated. `run_metrics.json` records native/BF16 call counts and fallback reasons.
+
+For steady-state comparisons, use `--warmup_steps 1` in **every** mode. This discards a separate one-step inference to warm kernels at the actual input shape, records its time and CUDA peaks under `warmup`, then resets counters/peaks before the requested inference. The default is no warmup; first-use costs then occur in loading (including the native capability probe) and inference. `--save_frames` also writes lossless PNG sequences for quality comparisons, outside inference timing, and requires empty frame output directories.
 
 The default GPU residency budget is 12 billion DiT parameters for the compact package and 6 billion for the original BF16 model. Override it with `--num_persistent_param_in_dit`; `0` streams all wrapped DiT layers from CPU memory. Higher values can reduce transfers but leave less memory for activations. `--profile` writes loading/inference timings and CUDA peak allocated/reserved memory to `run_metrics.json` in the output directory.
 
@@ -133,18 +149,32 @@ The exported package occupies approximately **17.93 GB (16.70 GiB)**, including 
 
 Frame dimensions must be divisible by 16, and `num_frames + num_repeat_last` must equal 1 modulo 4 (the default is 61 + 4). Changing the cached prompts or merged LoRA requires exporting a new package.
 
-A local RTX 4090 comparison used the same 3DGS example, 832×480 resolution, 61 input frames (65 internally), 10 steps, CFG 5, seed 1, PyTorch 2.6.0+cu126 and FlashAttention 2.7.4.post1:
+A local RTX 4090 comparison used the same 3DGS example, 832×480 resolution, 61 input frames (65 internally), 10 steps, CFG 5, seed 1, PyTorch 2.6.0+cu126 and FlashAttention 2.7.4.post1. Each mode ran twice in separate processes, in interleaved order, after a discarded one-step warmup:
 
-| Mode | Inference time | CUDA peak allocated | Sampled device peak | Process peak RSS |
+| Mode | Inference time, both runs | CUDA peak allocated | Sampled device peak | Process peak RSS |
 | --- | ---: | ---: | ---: | ---: |
-| Original BF16, 6 billion resident parameters | 256.5 s | 14.52 GiB | 15.53 GiB | 55.85 GiB |
-| Compact FP8, 12 billion resident parameters | 211.3 s | 14.54 GiB | 15.55 GiB | 18.84 GiB |
+| Original BF16, 6 billion resident parameters | 257.4 / 272.6 s | 14.52 GiB | 15.53 GiB | 55.86 GiB |
+| Compact FP8, BF16 compute, 12 billion resident parameters | 208.1 / 207.7 s | 14.54 GiB | 15.55 GiB | 19.00 GiB |
+| Compact FP8, native FP8 compute, 12 billion resident parameters | 180.7 / 180.6 s | 14.54 GiB | 15.77 GiB | 18.86 GiB |
 
-Inference includes conditioning, denoising and VAE decoding; model loading and MP4 encoding are excluded. Device memory was sampled once per second; the compact run retained at least 7.96 GiB free. File caches may be warm, and these timings are one sample, not a cold-start guarantee. The compact run completed offline from an empty working directory with deliberately nonexistent original checkpoint paths. Sampled frames retained the main refinement behavior; quantization changes details and has not been evaluated over a full dataset.
+Native FP8 reduced median inference time by **13.1%** relative to the same compact package with BF16 computation (1.15× throughput). The original BF16 comparison also includes prompt caching and a different parameter residency count; it does not isolate GEMM precision. The native runs executed 9,760 FP8 Linear calls each across 488 modules, with no BF16 fallback. A CUDA profiler trace identified an `sm89_xmma_gemm_e4m3...` cuBLAS kernel.
+
+Inference includes conditioning, denoising and VAE decoding; loading, warmup, PNG writing and MP4 encoding are excluded. CUDA inference peaks were reset after warmup. Device memory was sampled once per second across the complete process; the lowest sampled free memory for native FP8 was 7.75 GiB. File caches may be warm; these are single-clip measurements, not a cold-start guarantee. Both compact modes completed offline from empty working directories with deliberately nonexistent original checkpoint paths.
+
+Quality metrics use full-resolution lossless PNGs and exclude the two clean anchor frames (59 repaired frames). BF16 output is a comparison reference, **not ground truth**:
+
+| Compared with original BF16 | Pooled PSNR | Mean RGB SSIM |
+| --- | ---: | ---: |
+| Compact FP8 weights, BF16 compute | 33.322 dB | 0.96859 |
+| Compact FP8 weights, native FP8 compute | 28.932 dB | 0.92775 |
+
+Each mode reproduced all 61 output frames byte-for-byte across its two runs. Native FP8 retained the main scene layout but produced more visible changes in product and fabric details. These scores measure agreement with BF16, not absolute rendering quality or proven temporal consistency. BF16 computation remains the default; native FP8 is an explicit speed/precision choice. Machine-readable settings, source hashes and results are recorded in [the benchmark report](docs/benchmarks/rtx4090_native_fp8.json). Full local videos, frames and samples are under `outputs/native_fp8/` (gitignored).
 
 The runtime reuses immutable CPU copies of quantized weights during offloading. Do not modify deployment weights in place; merge LoRA into the BF16 originals and export a new package instead.
 
 CPU-only format and numerical tests: `python -m unittest discover -s tests -v`.
+
+Native CUDA kernel tests (no production weights required): `FIXANYTHING_TEST_NATIVE_CUDA=1 python -m unittest discover -s tests -p 'test_native_fp8.py' -v`.
 
 ## 📷 Run on Your Own Captures
 

@@ -10,6 +10,7 @@ import glob
 import json
 import os
 import time
+from pathlib import Path
 
 import torch
 from diffsynth.utils import ModelConfig
@@ -142,6 +143,8 @@ def parse_args():
                    help="Load an exported compact FP8 package instead of the base model and LoRA.")
     p.add_argument("--verify_deployment_hashes", action="store_true",
                    help="Verify every deployment shard's SHA-256 before use (adds file-reading time).")
+    p.add_argument("--fp8_compute", choices=("bf16", "native"), default="bf16",
+                   help="Compact package Linear backend: dequantize to BF16 (default), or use native FP8 GEMM with dynamically quantized activations.")
     p.add_argument("--lora_path", type=str, default="checkpoints/fixanything_lora.safetensors")
     p.add_argument("--model_dir", type=str, default="checkpoints",
                    help="Folder containing Wan-AI/Wan2.1-I2V-14B-480P/ (downloaded there if missing).")
@@ -160,9 +163,15 @@ def parse_args():
                    help="DiT parameters kept on GPU; defaults to 6 billion for BF16 or 12 billion for a compact FP8 package. Use 0 to stream all wrapped layers.")
     p.add_argument("--profile", action="store_true",
                    help="Save loading/inference timings and CUDA peak memory to run_metrics.json.")
+    p.add_argument("--save_frames", action="store_true",
+                   help="Also save lossless generated/input PNG frames for quality comparisons (outside inference timing).")
+    p.add_argument("--warmup_steps", type=_nonnegative_int, default=0,
+                   help="Run a separate warmup before measured inference, e.g. 1 to compile native FP8 kernels. Defaults to 0.")
     args = p.parse_args()
     if args.verify_deployment_hashes and not args.deployment_dir:
         p.error("--verify_deployment_hashes requires --deployment_dir")
+    if args.fp8_compute == "native" and not args.deployment_dir:
+        p.error("--fp8_compute native requires --deployment_dir")
     return args
 
 
@@ -172,6 +181,11 @@ def main():
     print(f"Loaded {len(frames)} frames from {args.input}")
     clean = None if args.clean_frame_indices is None else [int(x) for x in args.clean_frame_indices.split()]
     os.makedirs(args.output_dir, exist_ok=True)
+    if args.save_frames:
+        for label in ("generated_frames", "input_frames"):
+            directory = Path(args.output_dir) / label
+            if directory.exists() and any(directory.iterdir()):
+                raise FileExistsError(f"Frame output directory must be empty: {directory}")
 
     persistent_params = args.num_persistent_param_in_dit
     if persistent_params is None:
@@ -182,6 +196,7 @@ def main():
         "torch_version": torch.__version__,
         "dtype": "bfloat16",
         "dit_storage_dtype": "float8_e4m3fn" if args.deployment_dir else "bfloat16",
+        "fp8_compute": args.fp8_compute if args.deployment_dir else None,
         "num_persistent_param_in_dit": persistent_params,
     }
 
@@ -217,6 +232,7 @@ def main():
             args.deployment_dir, device="cuda",
             num_persistent_param_in_dit=persistent_params,
             verify_hashes=args.verify_deployment_hashes,
+            fp8_compute=args.fp8_compute,
         )
     else:
         pipe = load_pipeline(
@@ -224,19 +240,43 @@ def main():
             num_persistent_param_in_dit=persistent_params,
         )
     metrics["load"] = finish_measurement(start)
+    if args.deployment_dir:
+        metrics["fp8_capability"] = pipe.fp8_capability
     save_metrics()
     if args.profile:
         print(f"Model loading: {metrics['load']}")
+    def infer(steps):
+        return fix_video(
+            pipe, frames, clean_frame_indices=clean,
+            num_frames=args.num_frames, num_repeat_last=args.num_repeat_last,
+            height=args.height, width=args.width,
+            seed=args.seed, num_inference_steps=steps,
+        )
+
+    if args.warmup_steps:
+        start = start_measurement()
+        infer(args.warmup_steps)
+        metrics["warmup"] = finish_measurement(start)
+        if args.deployment_dir:
+            from fixanything.fp8 import reset_fp8_compute_stats
+            reset_fp8_compute_stats(pipe.dit)
+        save_metrics()
+        if args.profile:
+            print(f"Warmup: {metrics['warmup']}")
     start = start_measurement()
-    gen_video, ref_video = fix_video(
-        pipe, frames, clean_frame_indices=clean,
-        num_frames=args.num_frames, num_repeat_last=args.num_repeat_last,
-        height=args.height, width=args.width,
-        seed=args.seed, num_inference_steps=args.num_inference_steps,
-    )
+    gen_video, ref_video = infer(args.num_inference_steps)
     metrics["inference"] = finish_measurement(start)
+    if args.deployment_dir:
+        from fixanything.fp8 import fp8_compute_stats
+        metrics["fp8_compute_stats"] = fp8_compute_stats(pipe.dit)
     save_metrics()
 
+    if args.save_frames:
+        for label, video in (("generated_frames", gen_video), ("input_frames", ref_video)):
+            directory = Path(args.output_dir) / label
+            directory.mkdir(parents=True, exist_ok=True)
+            for index, frame in enumerate(video):
+                frame.save(directory / f"{index:05d}.png")
     save_video(gen_video, os.path.join(args.output_dir, "generated.mp4"), fps=args.fps)
     save_video(ref_video, os.path.join(args.output_dir, "input.mp4"), fps=args.fps)
     save_video(side_by_side(ref_video, gen_video), os.path.join(args.output_dir, "side_by_side.mp4"), fps=args.fps)

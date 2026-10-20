@@ -1,0 +1,714 @@
+{
+  "date_utc": "2026-10-20",
+  "scope": "One DL3DV 3DGS clip on one RTX 4090; two interleaved independent-process repetitions per mode. Not a dataset quality evaluation or cold-start SLA.",
+  "settings": {
+    "resolution": [
+      832,
+      480
+    ],
+    "input_frames": 61,
+    "internal_frames": 65,
+    "steps": 10,
+    "cfg_scale": 5.0,
+    "seed": 1,
+    "clean_frame_indices": [
+      0,
+      60
+    ],
+    "fps": 15,
+    "warmup_steps": 1,
+    "torch": "2.6.0+cu126",
+    "triton": "3.2.0",
+    "flash_attention": "2.7.4.post1",
+    "base_dtype": "bfloat16",
+    "native_fp8_format": "float8_e4m3fn",
+    "activation_scaling": "dynamic_per_tensor",
+    "weight_scaling": "per_linear_tensor",
+    "use_fast_accum": false,
+    "diffsynth_commit": "afd101f3452c9ecae0c87b79adfa2e22d65ffdc3"
+  },
+  "hardware": {
+    "python": "3.10.19 (main, Jan 14 2026, 19:36:24) [Clang 21.1.4 ]",
+    "platform": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "torch": "2.6.0+cu126",
+    "cuda": "12.6",
+    "triton": "3.2.0",
+    "torch_num_threads": 8,
+    "fp8_source_sha256": "f0232b5448cf60eed639f5619a9a3110a08760fa932d4fe052486dac040d7344",
+    "git_commit": "be6a45bac59944527abb12a82c4663edf9e00af6"
+  },
+  "provenance": {
+    "source_sha256": {
+      "fixanything/deployment.py": "0b61697adfb40ff79f556a900478722cbcff9d85e58d097798466758cea6aa93",
+      "fixanything/fp8.py": "f0232b5448cf60eed639f5619a9a3110a08760fa932d4fe052486dac040d7344",
+      "fixanything/pipelines/wan_video_v2v_mask_dynamic.py": "c31192a8f93441421220ac279c4398f132d602f192a41d387ee669eda43d0539",
+      "fixanything/prompts.py": "b4ffde1c85c0ae9f778a49e7f71cedd142a9918c4611506745c8582702d0d3da",
+      "scripts/run_inference.py": "423b242d781da7e91f60bd0a05fb433da07e629b32264f2b423f4bc2c092e05b"
+    },
+    "git_commit": "be6a45bac59944527abb12a82c4663edf9e00af6",
+    "input_sha256": "3305300d503a885785e4bd9621462e925b9b91aebe177b1255375d9d13ee8d6d",
+    "deployment_manifest_sha256": "3e9eedf6135e725fa8e4a373f57e240de05077190449604fdfcc8a6e90d5d342",
+    "steps": 10,
+    "warmup_steps": 1,
+    "note": "Warm OS file caches may affect loading. No GPU settings or caches are modified.",
+    "git_commit_semantics": "Base commit during testing; runtime edits were uncommitted. source_sha256 identifies the tested implementation."
+  },
+  "measurement": {
+    "inference": "Conditioning, denoising, VAE decoding. Excludes loading, warmup, PNG and MP4 writing.",
+    "cuda_peaks": "Reset after warmup; allocator peaks during measured inference.",
+    "device_peaks": "nvidia-smi sampled every second over complete process, including loading/warmup/output; short peaks may be missed.",
+    "rss": "Inference process VmHWM sampled from /proc/PID/status during its lifetime; complete-process high-water mark, excluding benchmark harness and other processes.",
+    "original_bf16_comparison": "Includes differences in prompt caching and GPU residency (6e9 original, 12e9 compact). The two compact backends use the identical package and residency budget."
+  },
+  "aggregate": {
+    "bf16": {
+      "inference_seconds": {
+        "values": [
+          257.42562638098025,
+          272.55866102999425
+        ],
+        "median": 264.99214370548725,
+        "min": 257.42562638098025,
+        "max": 272.55866102999425
+      },
+      "warmup_seconds": {
+        "values": [
+          49.66851557101472,
+          49.47900454100454
+        ],
+        "median": 49.57376005600963,
+        "min": 49.47900454100454,
+        "max": 49.66851557101472
+      },
+      "warmup_peak_allocated_gib": {
+        "values": [
+          14.511968612670898,
+          14.511968612670898
+        ],
+        "median": 14.511968612670898,
+        "min": 14.511968612670898,
+        "max": 14.511968612670898
+      },
+      "warmup_peak_reserved_gib": {
+        "values": [
+          15.044921875,
+          15.044921875
+        ],
+        "median": 15.044921875,
+        "min": 15.044921875,
+        "max": 15.044921875
+      },
+      "load_seconds": {
+        "values": [
+          43.25121652398957,
+          36.882952918007504
+        ],
+        "median": 40.06708472099854,
+        "min": 36.882952918007504,
+        "max": 43.25121652398957
+      },
+      "wall_seconds": {
+        "values": [
+          378.3835419770039,
+          387.3941611300106
+        ],
+        "median": 382.88885155350727,
+        "min": 378.3835419770039,
+        "max": 387.3941611300106
+      },
+      "inference_peak_allocated_gib": {
+        "values": [
+          14.521452903747559,
+          14.521452903747559
+        ],
+        "median": 14.521452903747559,
+        "min": 14.521452903747559,
+        "max": 14.521452903747559
+      },
+      "inference_peak_reserved_gib": {
+        "values": [
+          15.064453125,
+          15.064453125
+        ],
+        "median": 15.064453125,
+        "min": 15.064453125,
+        "max": 15.064453125
+      },
+      "sampled_peak_gpu_used_gib": {
+        "values": [
+          15.53125,
+          15.53125
+        ],
+        "median": 15.53125,
+        "min": 15.53125,
+        "max": 15.53125
+      },
+      "observed_process_hwm_gib": {
+        "values": [
+          55.85506820678711,
+          55.828426361083984
+        ],
+        "median": 55.84174728393555,
+        "min": 55.828426361083984,
+        "max": 55.85506820678711
+      }
+    },
+    "compact_bf16": {
+      "inference_seconds": {
+        "values": [
+          208.11968494197936,
+          207.73573276799289
+        ],
+        "median": 207.92770885498612,
+        "min": 207.73573276799289,
+        "max": 208.11968494197936
+      },
+      "warmup_seconds": {
+        "values": [
+          40.32551860497915,
+          36.59021861301153
+        ],
+        "median": 38.45786860899534,
+        "min": 36.59021861301153,
+        "max": 40.32551860497915
+      },
+      "warmup_peak_allocated_gib": {
+        "values": [
+          14.528488636016846,
+          14.528488636016846
+        ],
+        "median": 14.528488636016846,
+        "min": 14.528488636016846,
+        "max": 14.528488636016846
+      },
+      "warmup_peak_reserved_gib": {
+        "values": [
+          15.068359375,
+          15.068359375
+        ],
+        "median": 15.068359375,
+        "min": 15.068359375,
+        "max": 15.068359375
+      },
+      "load_seconds": {
+        "values": [
+          0.7920736669912003,
+          0.6176331450114958
+        ],
+        "median": 0.704853406001348,
+        "min": 0.6176331450114958,
+        "max": 0.7920736669912003
+      },
+      "wall_seconds": {
+        "values": [
+          271.27476191401365,
+          267.2732775750046
+        ],
+        "median": 269.27401974450913,
+        "min": 267.2732775750046,
+        "max": 271.27476191401365
+      },
+      "inference_peak_allocated_gib": {
+        "values": [
+          14.537972927093506,
+          14.537972927093506
+        ],
+        "median": 14.537972927093506,
+        "min": 14.537972927093506,
+        "max": 14.537972927093506
+      },
+      "inference_peak_reserved_gib": {
+        "values": [
+          15.087890625,
+          15.087890625
+        ],
+        "median": 15.087890625,
+        "min": 15.087890625,
+        "max": 15.087890625
+      },
+      "sampled_peak_gpu_used_gib": {
+        "values": [
+          15.5546875,
+          15.5546875
+        ],
+        "median": 15.5546875,
+        "min": 15.5546875,
+        "max": 15.5546875
+      },
+      "observed_process_hwm_gib": {
+        "values": [
+          18.869213104248047,
+          19.00170135498047
+        ],
+        "median": 18.935457229614258,
+        "min": 18.869213104248047,
+        "max": 19.00170135498047
+      }
+    },
+    "compact_native": {
+      "inference_seconds": {
+        "values": [
+          180.7044808609935,
+          180.6074135429808
+        ],
+        "median": 180.65594720198715,
+        "min": 180.6074135429808,
+        "max": 180.7044808609935
+      },
+      "warmup_seconds": {
+        "values": [
+          33.480146427988075,
+          37.40067849002662
+        ],
+        "median": 35.44041245900735,
+        "min": 33.480146427988075,
+        "max": 37.40067849002662
+      },
+      "warmup_peak_allocated_gib": {
+        "values": [
+          14.528488636016846,
+          14.528488636016846
+        ],
+        "median": 14.528488636016846,
+        "min": 14.528488636016846,
+        "max": 14.528488636016846
+      },
+      "warmup_peak_reserved_gib": {
+        "values": [
+          15.302734375,
+          15.302734375
+        ],
+        "median": 15.302734375,
+        "min": 15.302734375,
+        "max": 15.302734375
+      },
+      "load_seconds": {
+        "values": [
+          0.9719578980002552,
+          1.1842575970222242
+        ],
+        "median": 1.0781077475112397,
+        "min": 0.9719578980002552,
+        "max": 1.1842575970222242
+      },
+      "wall_seconds": {
+        "values": [
+          237.2423016699904,
+          242.24783665098948
+        ],
+        "median": 239.74506916048995,
+        "min": 237.2423016699904,
+        "max": 242.24783665098948
+      },
+      "inference_peak_allocated_gib": {
+        "values": [
+          14.537972927093506,
+          14.537972927093506
+        ],
+        "median": 14.537972927093506,
+        "min": 14.537972927093506,
+        "max": 14.537972927093506
+      },
+      "inference_peak_reserved_gib": {
+        "values": [
+          15.302734375,
+          15.302734375
+        ],
+        "median": 15.302734375,
+        "min": 15.302734375,
+        "max": 15.302734375
+      },
+      "sampled_peak_gpu_used_gib": {
+        "values": [
+          15.76953125,
+          15.76953125
+        ],
+        "median": 15.76953125,
+        "min": 15.76953125,
+        "max": 15.76953125
+      },
+      "observed_process_hwm_gib": {
+        "values": [
+          18.857097625732422,
+          18.844661712646484
+        ],
+        "median": 18.850879669189453,
+        "min": 18.844661712646484,
+        "max": 18.857097625732422
+      }
+    }
+  },
+  "runs": [
+    {
+      "mode": "bf16",
+      "repeat": 1,
+      "inference": {
+        "seconds": 257.42562638098025,
+        "peak_allocated_gib": 14.521452903747559,
+        "peak_reserved_gib": 15.064453125
+      },
+      "load": {
+        "seconds": 43.25121652398957,
+        "peak_allocated_gib": 1.1065673828125,
+        "peak_reserved_gib": 1.181640625
+      },
+      "warmup": {
+        "seconds": 49.66851557101472,
+        "peak_allocated_gib": 14.511968612670898,
+        "peak_reserved_gib": 15.044921875
+      },
+      "fp8_compute_stats": null,
+      "sampled_peak_gpu_used_gib": 15.53125,
+      "sampled_min_gpu_free_gib": 7.98828125,
+      "process_hwm_gib": 55.85506820678711,
+      "exit_code": 0
+    },
+    {
+      "mode": "compact_bf16",
+      "repeat": 1,
+      "inference": {
+        "seconds": 208.11968494197936,
+        "peak_allocated_gib": 14.537972927093506,
+        "peak_reserved_gib": 15.087890625
+      },
+      "load": {
+        "seconds": 0.7920736669912003,
+        "peak_allocated_gib": 0.0,
+        "peak_reserved_gib": 0.0
+      },
+      "warmup": {
+        "seconds": 40.32551860497915,
+        "peak_allocated_gib": 14.528488636016846,
+        "peak_reserved_gib": 15.068359375
+      },
+      "fp8_compute_stats": {
+        "modules": 488,
+        "native_modules": 0,
+        "bf16_modules": 488,
+        "native_calls": 0,
+        "bf16_calls": 9760,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": null,
+        "input_quantization": null
+      },
+      "sampled_peak_gpu_used_gib": 15.5546875,
+      "sampled_min_gpu_free_gib": 7.96484375,
+      "process_hwm_gib": 18.869213104248047,
+      "exit_code": 0
+    },
+    {
+      "mode": "compact_native",
+      "repeat": 1,
+      "inference": {
+        "seconds": 180.7044808609935,
+        "peak_allocated_gib": 14.537972927093506,
+        "peak_reserved_gib": 15.302734375
+      },
+      "load": {
+        "seconds": 0.9719578980002552,
+        "peak_allocated_gib": 0.008914470672607422,
+        "peak_reserved_gib": 0.021484375
+      },
+      "warmup": {
+        "seconds": 33.480146427988075,
+        "peak_allocated_gib": 14.528488636016846,
+        "peak_reserved_gib": 15.302734375
+      },
+      "fp8_compute_stats": {
+        "modules": 488,
+        "native_modules": 488,
+        "bf16_modules": 0,
+        "native_calls": 9760,
+        "bf16_calls": 0,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": false,
+        "input_quantization": "triton_fused"
+      },
+      "sampled_peak_gpu_used_gib": 15.76953125,
+      "sampled_min_gpu_free_gib": 7.75,
+      "process_hwm_gib": 18.857097625732422,
+      "exit_code": 0
+    },
+    {
+      "mode": "compact_bf16",
+      "repeat": 2,
+      "inference": {
+        "seconds": 207.73573276799289,
+        "peak_allocated_gib": 14.537972927093506,
+        "peak_reserved_gib": 15.087890625
+      },
+      "load": {
+        "seconds": 0.6176331450114958,
+        "peak_allocated_gib": 0.0,
+        "peak_reserved_gib": 0.0
+      },
+      "warmup": {
+        "seconds": 36.59021861301153,
+        "peak_allocated_gib": 14.528488636016846,
+        "peak_reserved_gib": 15.068359375
+      },
+      "fp8_compute_stats": {
+        "modules": 488,
+        "native_modules": 0,
+        "bf16_modules": 488,
+        "native_calls": 0,
+        "bf16_calls": 9760,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": null,
+        "input_quantization": null
+      },
+      "sampled_peak_gpu_used_gib": 15.5546875,
+      "sampled_min_gpu_free_gib": 7.96484375,
+      "process_hwm_gib": 19.00170135498047,
+      "exit_code": 0
+    },
+    {
+      "mode": "bf16",
+      "repeat": 2,
+      "inference": {
+        "seconds": 272.55866102999425,
+        "peak_allocated_gib": 14.521452903747559,
+        "peak_reserved_gib": 15.064453125
+      },
+      "load": {
+        "seconds": 36.882952918007504,
+        "peak_allocated_gib": 1.1065673828125,
+        "peak_reserved_gib": 1.181640625
+      },
+      "warmup": {
+        "seconds": 49.47900454100454,
+        "peak_allocated_gib": 14.511968612670898,
+        "peak_reserved_gib": 15.044921875
+      },
+      "fp8_compute_stats": null,
+      "sampled_peak_gpu_used_gib": 15.53125,
+      "sampled_min_gpu_free_gib": 7.98828125,
+      "process_hwm_gib": 55.828426361083984,
+      "exit_code": 0
+    },
+    {
+      "mode": "compact_native",
+      "repeat": 2,
+      "inference": {
+        "seconds": 180.6074135429808,
+        "peak_allocated_gib": 14.537972927093506,
+        "peak_reserved_gib": 15.302734375
+      },
+      "load": {
+        "seconds": 1.1842575970222242,
+        "peak_allocated_gib": 0.008914470672607422,
+        "peak_reserved_gib": 0.021484375
+      },
+      "warmup": {
+        "seconds": 37.40067849002662,
+        "peak_allocated_gib": 14.528488636016846,
+        "peak_reserved_gib": 15.302734375
+      },
+      "fp8_compute_stats": {
+        "modules": 488,
+        "native_modules": 488,
+        "bf16_modules": 0,
+        "native_calls": 9760,
+        "bf16_calls": 0,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": false,
+        "input_quantization": "triton_fused"
+      },
+      "sampled_peak_gpu_used_gib": 15.76953125,
+      "sampled_min_gpu_free_gib": 7.75,
+      "process_hwm_gib": 18.844661712646484,
+      "exit_code": 0
+    }
+  ],
+  "native_time_reduction_percent": 13.115982378288493,
+  "quality": {
+    "reference": "Original BF16 generated output; NOT ground truth.",
+    "metric_input": "lossless-PNG",
+    "definitions": {
+      "pixels": "Full native resolution RGB uint8, data range 255; metrics computed before display resize.",
+      "psnr_db": "10*log10(255^2/MSE). JSON null denotes +infinity for exact matches. pooled_psnr_db uses pooled pixel MSE; finite mean excludes exact-match frames.",
+      "ssim_rgb": "Mean over RGB channels and valid uniform 7x7 windows; sample covariance correction 49/48, K1=.01, K2=.03, data_range=255.",
+      "temporal_error": "(candidate[t]-candidate[t-1])-(BF16[t]-BF16[t-1]), measured as MAE/RMSE in 8-bit pixel units; no optical flow compensation. Lower means closer to BF16 temporal changes, not proven geometric consistency.",
+      "repaired_frames_only": "Excludes clean anchor frame indices.",
+      "repaired_adjacent_transitions_only": "Excludes transitions touching a clean anchor at either endpoint."
+    },
+    "clean_frame_indices": [
+      0,
+      60
+    ],
+    "compact": {
+      "all_frames": {
+        "frame_count": 61,
+        "identical_frame_count": 0,
+        "pooled_psnr_db": 33.35444689641049,
+        "mean_frame_psnr_db_finite": 33.513878804932936,
+        "mean_ssim": 0.9687366836265685,
+        "mean_mae_8bit": 3.16266559281736,
+        "pixel_rmse_8bit": 5.480470389201392,
+        "worst_rmse_frame": 41
+      },
+      "repaired_frames_only": {
+        "frame_count": 59,
+        "identical_frame_count": 0,
+        "pooled_psnr_db": 33.322145948814835,
+        "mean_frame_psnr_db_finite": 33.481257578526666,
+        "mean_ssim": 0.9685903791291806,
+        "mean_mae_8bit": 3.1642495648404685,
+        "pixel_rmse_8bit": 5.500889017616408,
+        "worst_rmse_frame": 41
+      },
+      "all_adjacent_transitions": {
+        "transition_count": 60,
+        "mean_temporal_difference_mae_8bit": 4.0078727213541665,
+        "temporal_difference_pixel_rmse_8bit": 7.096401411765414
+      },
+      "repaired_adjacent_transitions_only": {
+        "transition_count": 58,
+        "mean_temporal_difference_mae_8bit": 4.045361860586133,
+        "temporal_difference_pixel_rmse_8bit": 7.160534872338902
+      }
+    },
+    "native": {
+      "all_frames": {
+        "frame_count": 61,
+        "identical_frame_count": 0,
+        "pooled_psnr_db": 28.95333274846496,
+        "mean_frame_psnr_db_finite": 28.984860133959895,
+        "mean_ssim": 0.9278787068292875,
+        "mean_mae_8bit": 5.4082754948901846,
+        "pixel_rmse_8bit": 9.096483644945414,
+        "worst_rmse_frame": 41
+      },
+      "repaired_frames_only": {
+        "frame_count": 59,
+        "identical_frame_count": 0,
+        "pooled_psnr_db": 28.9321994310722,
+        "mean_frame_psnr_db_finite": 28.96086555222923,
+        "mean_ssim": 0.9277499014267322,
+        "mean_mae_8bit": 5.410570910632153,
+        "pixel_rmse_8bit": 9.118642909970331,
+        "worst_rmse_frame": 41
+      },
+      "all_adjacent_transitions": {
+        "transition_count": 60,
+        "mean_temporal_difference_mae_8bit": 6.5105199151976505,
+        "temporal_difference_pixel_rmse_8bit": 11.451515338742874
+      },
+      "repaired_adjacent_transitions_only": {
+        "transition_count": 58,
+        "mean_temporal_difference_mae_8bit": 6.567890794811929,
+        "temporal_difference_pixel_rmse_8bit": 11.544778550999808
+      }
+    }
+  },
+  "quality_compact_vs_native_reference": "Compact FP8 weights + BF16 compute generated output; NOT original BF16 weights and NOT ground truth.",
+  "repeat_consistency": {
+    "tested_modes": [
+      "compact_bf16_repeat2_vs_repeat1",
+      "original_bf16_repeat2_vs_repeat1",
+      "native_fp8_repeat2_vs_repeat1"
+    ],
+    "all_tested_modes_byte_identical_across_repeats": true,
+    "all_tested_modes_pixel_identical_across_repeats": true,
+    "scope": "Two repeats per mode for one fixed 61-frame clip and seed in this environment; does not establish determinism across other seeds, clips, hardware, or software."
+  },
+  "native_kernel_profile": {
+    "status": "complete",
+    "mode": "native_false",
+    "category": "pure_gemm",
+    "input_dtype": "torch.float8_e4m3fn",
+    "weight_dtype": "torch.float8_e4m3fn",
+    "output_dtype": "torch.bfloat16",
+    "operation": "torch._scaled_mm",
+    "cuda_kernel_names": [
+      "sm89_xmma_gemm_e4m3bf16_e4m3f32_f32_tn_n_tilesize64x128x64_stage4_warpsize2x2x1_tensor16x8x32_algo2_execute_kernel__5x_cublas"
+    ]
+  },
+  "fast_accum_screen": {
+    "status": "Not enabled; no video run added.",
+    "reason": "No actual matrix size met the 15% full-Linear improvement threshold; two were slower.",
+    "full_linear_unweighted_geometric_mean_true_time_reduction_percent": -26.255899689784968,
+    "individual_shapes_passing_15_percent_full_linear_reduction": [],
+    "decision": "Manual review only: microbenchmark gains do not establish video quality or end-to-end speedup."
+  },
+  "local_artifacts": {
+    "full_metrics": "outputs/native_fp8/comparison.json",
+    "quality": "outputs/native_fp8/quality/quality_comparison.json",
+    "video": "outputs/native_fp8/quality/precision_comparison.mp4",
+    "repeat_consistency": "outputs/native_fp8/repeat_consistency.json",
+    "kernel_probe": "outputs/native_fp8/fast_accum_probe.json"
+  },
+  "quality_native_vs_compact": {
+    "reference": "Compact FP8 weights + BF16 compute generated output; NOT original BF16 weights and NOT ground truth.",
+    "candidate": "Same compact FP8 weights + native FP8 GEMM generated output.",
+    "metric_input": "lossless-PNG",
+    "clean_frame_indices": [
+      0,
+      60
+    ],
+    "source_checks": {
+      "compact_reference": {
+        "path": "outputs/native_fp8/02_compact_bf16_repeat1/generated_frames",
+        "source_kind": "lossless-PNG",
+        "frames": 61,
+        "height": 480,
+        "width": 832,
+        "fps": 15.0
+      },
+      "native_candidate": {
+        "path": "outputs/native_fp8/03_compact_native_repeat1/generated_frames",
+        "source_kind": "lossless-PNG",
+        "frames": 61,
+        "height": 480,
+        "width": 832,
+        "fps": 15.0
+      }
+    },
+    "definitions": {
+      "pixels": "Native-resolution RGB uint8, data range255.",
+      "psnr_db": "10*log10(255^2/MSE); null denotes +infinity. Pooled PSNR uses pooled pixel MSE.",
+      "ssim_rgb": "RGB-channel mean over valid uniform7x7 windows, sample covariance49/48, K1=.01,K2=.03.",
+      "temporal_error": "(native[t]-native[t-1])-(compact_BF16_compute[t]-compact_BF16_compute[t-1]), MAE/RMSE in8-bit units; no optical-flow compensation and no geometric-consistency claim.",
+      "repaired_frames_only": "Excludes clean anchors0 and60 (59 frames).",
+      "repaired_adjacent_transitions_only": "Both endpoints exclude clean anchors (58 transitions)."
+    },
+    "comparisons": {
+      "native": {
+        "all_frames": {
+          "frame_count": 61,
+          "identical_frame_count": 0,
+          "pooled_psnr_db": 28.990911241987718,
+          "mean_frame_psnr_db_finite": 29.041475966995815,
+          "mean_ssim": 0.9286206422074785,
+          "mean_mae_8bit": 5.360848600930886,
+          "pixel_rmse_8bit": 9.057213773624886,
+          "worst_rmse_frame": 41
+        },
+        "repaired_frames_only": {
+          "frame_count": 59,
+          "identical_frame_count": 0,
+          "pooled_psnr_db": 28.96766829771284,
+          "mean_frame_psnr_db_finite": 29.015313955923325,
+          "mean_ssim": 0.9284846814750517,
+          "mean_mae_8bit": 5.364651266885773,
+          "pixel_rmse_8bit": 9.081482816869926,
+          "worst_rmse_frame": 41
+        },
+        "all_adjacent_transitions": {
+          "transition_count": 60,
+          "mean_temporal_difference_mae_8bit": 6.480997749176459,
+          "temporal_difference_pixel_rmse_8bit": 11.41423509609205
+        },
+        "repaired_adjacent_transitions_only": {
+          "transition_count": 58,
+          "mean_temporal_difference_mae_8bit": 6.540709315939987,
+          "temporal_difference_pixel_rmse_8bit": 11.511655248427775
+        }
+      }
+    }
+  }
+}

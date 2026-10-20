@@ -486,6 +486,12 @@ class CachedPromptTests(unittest.TestCase):
 
 
 class DeploymentLoaderTests(unittest.TestCase):
+    def test_unknown_compute_backend_is_rejected_before_reading_weights(self):
+        from fixanything.deployment import load_deployment
+
+        with self.assertRaisesRegex(ValueError, "fp8_compute"):
+            load_deployment("/nonexistent-deployment", fp8_compute="automatic")
+
     def test_package_loads_through_meta_factories_without_originals_or_downloads(self):
         from fixanything.deployment import (
             FORMAT_VERSION,
@@ -541,9 +547,12 @@ class DeploymentLoaderTests(unittest.TestCase):
             ):
                 pipe = load_deployment(directory, device="cpu", num_persistent_param_in_dit=0, verify_hashes=True)
             self.assertEqual(pipe.resident_count, 0)
+            self.assertEqual(pipe.fp8_compute, "bf16")
+            self.assertIsNone(pipe.fp8_capability)
             self.assertFalse(pipe.training)
             self.assertIsInstance(pipe.dit.layers[0], ScaledFP8Linear)
             self.assertEqual(pipe.dit.layers[0].weight.dtype, FP8_DTYPE)
+            self.assertEqual(pipe.dit.layers[0].compute_backend, "bf16")
             self.assertEqual(pipe.dit.layers[0].weight_scale.dtype, torch.float32)
             self.assertEqual(pipe.dit.layers[0].bias.dtype, torch.bfloat16)
             self.assertEqual(pipe.image_encoder.weight.dtype, torch.bfloat16)

@@ -225,7 +225,7 @@ def export_deployment(output_dir, model_dir="checkpoints", lora_path="checkpoint
 
 
 def load_deployment(directory, device="cuda", num_persistent_param_in_dit=12_000_000_000,
-                    verify_hashes=False):
+                    verify_hashes=False, fp8_compute="bf16"):
     """Load only the exported package, without original weights, tokenizer or T5."""
     from diffsynth.models.utils import init_weights_on_device
     from diffsynth.models.wan_video_dit import WanModel
@@ -233,6 +233,12 @@ def load_deployment(directory, device="cuda", num_persistent_param_in_dit=12_000
     from diffsynth.models.wan_video_vae import WanVideoVAE
     from .pipelines import WanVideoPipeline
 
+    if fp8_compute not in ("bf16", "native"):
+        raise ValueError("fp8_compute must be 'bf16' or 'native'.")
+    capability = None
+    if fp8_compute == "native":
+        from .fp8 import validate_native_fp8
+        capability = validate_native_fp8(device)
     if num_persistent_param_in_dit is None or num_persistent_param_in_dit < 0:
         raise ValueError("FP8 requires a nonnegative fixed persistent parameter count.")
     directory = Path(directory)
@@ -248,6 +254,7 @@ def load_deployment(directory, device="cuda", num_persistent_param_in_dit=12_000
             if not isinstance(module, torch.nn.Linear):
                 raise ValueError(f"FP8 target is not a Linear: {name}")
             replacement = ScaledFP8Linear(module.in_features, module.out_features, module.bias is not None, device="meta")
+            replacement.compute_backend = fp8_compute
             parent_name, _, leaf = name.rpartition(".")
             setattr(dit.get_submodule(parent_name), leaf, replacement)
         image_encoder = WanImageEncoder()
@@ -273,5 +280,7 @@ def load_deployment(directory, device="cuda", num_persistent_param_in_dit=12_000
     pipe.cached_prompt_embeddings = embeddings
     pipe.cached_prompts = manifest["prompts"]
     pipe.deployment_manifest = manifest
+    pipe.fp8_compute = fp8_compute
+    pipe.fp8_capability = capability
     pipe.enable_vram_management(num_persistent_param_in_dit=num_persistent_param_in_dit)
     return pipe.eval()
