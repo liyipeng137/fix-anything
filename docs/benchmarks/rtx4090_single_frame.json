@@ -1,0 +1,377 @@
+{
+  "date": "2026-10-21",
+  "timezone": "Asia/Shanghai",
+  "scope": "One degraded middle frame (0-based index 30) from the same DL3DV 3DGS clip as the video benchmark. True T=1 execution succeeds but restoration fails visually in this case.",
+  "settings": {
+    "width": 832,
+    "height": 480,
+    "num_frames": 1,
+    "num_repeat_last": 0,
+    "internal_frames": 1,
+    "clean_frame_indices": [],
+    "steps": 10,
+    "seed": 1,
+    "cfg_scale": 5.0,
+    "persistent_parameters": 12000000000
+  },
+  "input_verification": {
+    "source_video": "examples/dl3dv_3dgs/input.mp4",
+    "source_frame_zero_based": 30,
+    "source_fps": 15.0,
+    "chosen_frame_is_clean_anchor": false,
+    "original_clean_anchor_indices": [
+      0,
+      60
+    ],
+    "output": "outputs/single_frame/input/frame_00030.png",
+    "comparison_reference": "outputs/native_fp8/01_bf16_repeat1/input_frames/00030.png",
+    "width": 832,
+    "height": 480,
+    "pixel_identical_to_previous_video_input": true,
+    "max_abs_channel_difference_8bit": 0,
+    "differing_channel_values": 0,
+    "output_file_sha256": "58847038071ce76f57db097675611bc044533b2be513ac2b4d57fcabd091087a",
+    "rgb_pixel_sha256": "bcf245f9bbde8ca89476950ae0d134783837b51b254168699a4ff4afecc23f21",
+    "note": "Input identity check only. Subsequent output differences against the61-frame video result measure consistency, not ground-truth restoration quality."
+  },
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "torch": "2.6.0+cu126",
+    "base_commit": "822c9b1529d00b22b646f9020bf8dedab8a945c0"
+  },
+  "timing_scope": "Model already loaded; one discarded 1-step warmup per backend; three 10-step repetitions. CUDA synchronize at both boundaries. Includes conditioning, denoising, VAE decode. Excludes loading and PNG I/O. BF16/native use the identical compact package and 12e9 residency budget in one process.",
+  "load_seconds": 0.8626281970064156,
+  "modes": {
+    "bf16": {
+      "single_frame": {
+        "values": [
+          19.713315884990152,
+          18.85226222500205,
+          19.104611598013435
+        ],
+        "median_seconds": 19.104611598013435,
+        "min_seconds": 18.85226222500205,
+        "max_seconds": 19.713315884990152
+      },
+      "video_total_median_seconds": 207.92770885498612,
+      "video_output_frame_count": 61,
+      "video_mean_seconds_per_output_frame": 3.408650964835838,
+      "single_latency_divided_by_video_amortized_frame_time": 5.604742695893336,
+      "peak_cuda_allocated_gib": 11.503127574920654,
+      "peak_cuda_reserved_gib": 11.556640625,
+      "three_output_pngs_byte_identical": true,
+      "measured_linear_calls_per_inference": {
+        "modules": 488,
+        "native_modules": 0,
+        "bf16_modules": 488,
+        "native_calls": 0,
+        "bf16_calls": 9760,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": null,
+        "input_quantization": null
+      },
+      "warmup": {
+        "seconds": 5.273891621967778,
+        "peak_allocated_gib": 11.502569675445557,
+        "peak_reserved_gib": 11.5546875
+      },
+      "visual_result": "failed: severe color/structure distortion"
+    },
+    "native": {
+      "single_frame": {
+        "values": [
+          14.465928029967472,
+          14.367125505988952,
+          13.751081239955965
+        ],
+        "median_seconds": 14.367125505988952,
+        "min_seconds": 13.751081239955965,
+        "max_seconds": 14.465928029967472
+      },
+      "video_total_median_seconds": 180.65594720198715,
+      "video_output_frame_count": 61,
+      "video_mean_seconds_per_output_frame": 2.961572904950609,
+      "single_latency_divided_by_video_amortized_frame_time": 4.851180763429005,
+      "peak_cuda_allocated_gib": 11.398114681243896,
+      "peak_cuda_reserved_gib": 11.458984375,
+      "three_output_pngs_byte_identical": true,
+      "measured_linear_calls_per_inference": {
+        "modules": 488,
+        "native_modules": 488,
+        "bf16_modules": 0,
+        "native_calls": 9760,
+        "bf16_calls": 0,
+        "fallback_calls": 0,
+        "fallback_reasons": {},
+        "use_fast_accum": false,
+        "input_quantization": "triton_fused"
+      },
+      "warmup": {
+        "seconds": 4.815002842980903,
+        "peak_allocated_gib": 11.397556781768799,
+        "peak_reserved_gib": 11.45703125
+      },
+      "visual_result": "failed: severe color/structure distortion"
+    }
+  },
+  "shape_observation": [
+    {
+      "latents": [
+        1,
+        16,
+        1,
+        60,
+        104
+      ],
+      "y": [
+        1,
+        20,
+        1,
+        60,
+        104
+      ]
+    }
+  ],
+  "input_image_count": 1,
+  "latent_temporal_length": 1,
+  "video_tokens": 1560,
+  "full_video_latent_temporal_length": 17,
+  "full_video_tokens": 26520,
+  "original_bf16_control": {
+    "mode": "original",
+    "steps": 10,
+    "seed": 1,
+    "height": 480,
+    "width": 832,
+    "cases": [
+      {
+        "name": "true1_cfg5",
+        "internal_frames": 1,
+        "clean_frame_indices": [],
+        "cfg_scale": 5,
+        "selected_output_index": 0,
+        "output": "outputs/single_frame/diagnostics/original/true1_cfg5/00000.png",
+        "inference": {
+          "seconds": 51.343802030954976,
+          "peak_allocated_gib": 11.420689582824707,
+          "peak_reserved_gib": 11.474609375
+        },
+        "output_frame_count": 1,
+        "input_mae": 86.01561164529915
+      }
+    ],
+    "load_seconds": 40.93756640603533,
+    "warmup": {
+      "seconds": 19.44677473802585,
+      "peak_allocated_gib": 11.42013168334961,
+      "peak_reserved_gib": 11.47265625
+    },
+    "status": "complete"
+  },
+  "diagnostics": {
+    "mode": "compact",
+    "steps": 10,
+    "seed": 1,
+    "height": 480,
+    "width": 832,
+    "cases": [
+      {
+        "name": "true1_cfg1",
+        "internal_frames": 1,
+        "clean_frame_indices": [],
+        "cfg_scale": 1,
+        "selected_output_index": 0,
+        "output": "outputs/single_frame/diagnostics/compact/true1_cfg1/00000.png",
+        "inference": {
+          "seconds": 9.223783771973103,
+          "peak_allocated_gib": 11.498849391937256,
+          "peak_reserved_gib": 11.5546875
+        },
+        "output_frame_count": 1,
+        "input_mae": 75.92529630742521,
+        "fp8_compute_stats": {
+          "modules": 488,
+          "native_modules": 0,
+          "bf16_modules": 488,
+          "native_calls": 0,
+          "bf16_calls": 4880,
+          "fallback_calls": 0,
+          "fallback_reasons": {},
+          "use_fast_accum": null,
+          "input_quantization": null
+        }
+      },
+      {
+        "name": "true1_clean0_cfg5",
+        "internal_frames": 1,
+        "clean_frame_indices": [
+          0
+        ],
+        "cfg_scale": 5,
+        "selected_output_index": 0,
+        "output": "outputs/single_frame/diagnostics/compact/true1_clean0_cfg5/00000.png",
+        "inference": {
+          "seconds": 16.62406532204477,
+          "peak_allocated_gib": 11.503127574920654,
+          "peak_reserved_gib": 11.556640625
+        },
+        "output_frame_count": 1,
+        "input_mae": 27.644886818910255,
+        "fp8_compute_stats": {
+          "modules": 488,
+          "native_modules": 0,
+          "bf16_modules": 488,
+          "native_calls": 0,
+          "bf16_calls": 9760,
+          "fallback_calls": 0,
+          "fallback_reasons": {},
+          "use_fast_accum": null,
+          "input_quantization": null
+        }
+      },
+      {
+        "name": "repeat5_cfg5",
+        "internal_frames": 5,
+        "clean_frame_indices": [],
+        "cfg_scale": 5,
+        "selected_output_index": 2,
+        "output": "outputs/single_frame/diagnostics/compact/repeat5_cfg5/00002.png",
+        "inference": {
+          "seconds": 25.06243579601869,
+          "peak_allocated_gib": 11.60564136505127,
+          "peak_reserved_gib": 11.693359375
+        },
+        "output_frame_count": 5,
+        "input_mae": 75.03842397836539,
+        "fp8_compute_stats": {
+          "modules": 488,
+          "native_modules": 0,
+          "bf16_modules": 488,
+          "native_calls": 0,
+          "bf16_calls": 9760,
+          "fallback_calls": 0,
+          "fallback_reasons": {},
+          "use_fast_accum": null,
+          "input_quantization": null
+        }
+      },
+      {
+        "name": "repeat9_cfg5",
+        "internal_frames": 9,
+        "clean_frame_indices": [],
+        "cfg_scale": 5,
+        "selected_output_index": 4,
+        "output": "outputs/single_frame/diagnostics/compact/repeat9_cfg5/00004.png",
+        "inference": {
+          "seconds": 35.35195238300366,
+          "peak_allocated_gib": 11.790596961975098,
+          "peak_reserved_gib": 11.94921875
+        },
+        "output_frame_count": 9,
+        "input_mae": 60.5372562767094,
+        "fp8_compute_stats": {
+          "modules": 488,
+          "native_modules": 0,
+          "bf16_modules": 488,
+          "native_calls": 0,
+          "bf16_calls": 9760,
+          "fallback_calls": 0,
+          "fallback_reasons": {},
+          "use_fast_accum": null,
+          "input_quantization": null
+        }
+      },
+      {
+        "name": "repeat9_pseudo_clean_ends_cfg5",
+        "internal_frames": 9,
+        "clean_frame_indices": [
+          0,
+          8
+        ],
+        "cfg_scale": 5,
+        "selected_output_index": 4,
+        "output": "outputs/single_frame/diagnostics/compact/repeat9_pseudo_clean_ends_cfg5/00004.png",
+        "inference": {
+          "seconds": 35.51877710700501,
+          "peak_allocated_gib": 11.790596961975098,
+          "peak_reserved_gib": 11.94921875
+        },
+        "output_frame_count": 9,
+        "input_mae": 6.9759765625,
+        "fp8_compute_stats": {
+          "modules": 488,
+          "native_modules": 0,
+          "bf16_modules": 488,
+          "native_calls": 0,
+          "bf16_calls": 9760,
+          "fallback_calls": 0,
+          "fallback_reasons": {},
+          "use_fast_accum": null,
+          "input_quantization": null
+        }
+      }
+    ],
+    "load_seconds": 0.9378102350165136,
+    "vae_roundtrip": {
+      "latent_shape": [
+        1,
+        16,
+        1,
+        60,
+        104
+      ],
+      "input_mae": 3.1332757411858974
+    },
+    "warmup": {
+      "seconds": 8.244923220947385,
+      "peak_allocated_gib": 11.502569675445557,
+      "peak_reserved_gib": 11.5546875
+    },
+    "status": "complete"
+  },
+  "observations": [
+    "Both compact compute modes produce severe false colors and structural hallucination in true T=1 mode.",
+    "Original nonquantized BF16 weights also fail, so this observed failure is not specific to FP8.",
+    "Real VAE-only reconstruction preserves the input colors and structure; the failure appears in diffusion restoration rather than ordinary VAE reconstruction.",
+    "Lower CFG and repeating the image to 5 or 9 frames with no clean anchors do not provide usable restoration in the tested cases.",
+    "Marking the degraded image as clean blurs/preserves artifacts; pseudo-clean ends for 9 identical images preserve the degraded input, rather than recovering the quality seen with real video context."
+  ],
+  "interpretation": "A valid tensor shape and changed pixels are not successful restoration. Same seed across different temporal shapes does not ensure corresponding noise. Video comparison also changes temporal context and clean anchors, so no single causal factor is isolated. No clean ground truth image is available.",
+  "source_sha256": {
+    "fixanything/fp8.py": "f0232b5448cf60eed639f5619a9a3110a08760fa932d4fe052486dac040d7344",
+    "fixanything/deployment.py": "0b61697adfb40ff79f556a900478722cbcff9d85e58d097798466758cea6aa93",
+    "fixanything/pipelines/wan_video_v2v_mask_dynamic.py": "c31192a8f93441421220ac279c4398f132d602f192a41d387ee669eda43d0539",
+    "scripts/run_inference.py": "423b242d781da7e91f60bd0a05fb433da07e629b32264f2b423f4bc2c092e05b",
+    "fixanything/data.py": "036e1f827a1312f898af4e0d66c92764b6d0de1472ab45ac31db5511012dcbcf"
+  },
+  "local_artifacts": {
+    "main_comparison": "outputs/single_frame/comparison_final.png",
+    "diagnostics": "outputs/single_frame/diagnostic_sheet.png",
+    "raw_timing": "outputs/single_frame/results.json",
+    "benchmark_script": "outputs/single_frame/benchmark.py",
+    "diagnostic_script": "outputs/single_frame/diagnose.py",
+    "vae_exact_roundtrip": "outputs/single_frame/diagnostics/compact/vae_exact_pipeline_roundtrip.png"
+  },
+  "comparison_video_input_frames": 61,
+  "comparison_video_internal_frames": 65,
+  "vae_roundtrip_with_exact_pipeline_tiling": {
+    "tile_size": [
+      30,
+      52
+    ],
+    "tile_stride": [
+      15,
+      26
+    ],
+    "latent_shape": [
+      1,
+      16,
+      1,
+      60,
+      104
+    ],
+    "input_mae": 3.1350594284188036
+  },
+  "original_bf16_control_purpose": "Quality-only control: one warmed 10-step inference using original BF16 weights, online T5 conditioning and 6e9 resident DiT parameters. Excluded from the matched compact-backend latency table."
+}

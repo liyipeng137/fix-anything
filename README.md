@@ -176,6 +176,21 @@ CPU-only format and numerical tests: `python -m unittest discover -s tests -v`.
 
 Native CUDA kernel tests (no production weights required): `FIXANYTHING_TEST_NATIVE_CUDA=1 python -m unittest discover -s tests -p 'test_native_fp8.py' -v`.
 
+### Single-frame experiment
+
+The pipeline can execute a true single-frame input with `num_frames=1`, `num_repeat_last=0`, and `clean_frame_indices=[]` (CLI: `--num_frames 1 --num_repeat_last 0 --clean_frame_indices ""`). No temporal padding to five frames is required. In a local test, however, restoration quality failed: the extracted degraded frame 30 from the 3DGS example produced severe false colors and structural hallucination. The original, unquantized BF16 model also failed on this input; a VAE-only reconstruction preserved its colors and layout.
+
+With the compact package, 832×480, 10 steps, CFG 5, seed 1, and 12 billion resident parameters, three warmed-up attempts per backend gave:
+
+| Compute backend | True single-frame median | Previous 61-frame video total / 61 |
+| --- | ---: | ---: |
+| BF16 | 19.10 s | 3.409 s |
+| Native FP8 | 14.37 s | 2.962 s |
+
+These times exclude model loading, the discarded one-step warmup and image saving. All three outputs within each backend were byte-identical. The video values are amortized time per output frame, not single-image latency. The full video has 17 temporal latents versus one for a single image, while diffusion steps, conditioning and weight streaming still have fixed costs. Its real neighboring frames and clean anchors also differ from the isolated-image setup.
+
+Lowering CFG or repeating the degraded image to five/nine frames did not yield usable restoration in this probe. Treating that image as clean, including as both ends of a nine-frame repetition, mostly blurred or retained the original artifacts. These results cover one extracted frame and do not establish reliable single-image restoration. [Settings, controls and measured results](docs/benchmarks/rtx4090_single_frame.json) are saved for reproduction; local visual comparisons are under `outputs/single_frame/`.
+
 ## 📷 Run on Your Own Captures
 
 If you only have a few photos of a scene, `scripts/run_mapanything.py` reconstructs them with [MapAnything](https://github.com/facebookresearch/map-anything), renders the reconstruction along a camera path from the first to the last image, and FixAnything turns that rendering into a clean video. `examples/microkitchen_2views` and `examples/chair_2views` each contain two photos of a scene (credit: thanks to Peter Hedman for the photos!):
